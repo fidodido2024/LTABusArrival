@@ -10,13 +10,25 @@ export interface BackendConfig {
 
 const DEFAULT_CONFIG: BackendConfig = {
   mode: 'simulation',
-  apiUrl: '/api/bus-arrivals',
+  apiUrl: '/api/busarrival',
   ltaAccountKey: '',
   autoRefreshInterval: 15,
 };
 
 // Local storage key for custom backend preferences
 const STORAGE_KEY = 'sg_bus_backend_config';
+
+export async function checkServerlessHealth(): Promise<{ status: string; ltaKeyConfigured: boolean }> {
+  try {
+    const res = await fetch('/api/health');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    // serverless backend not reachable yet or offline
+  }
+  return { status: 'offline', ltaKeyConfigured: false };
+}
 
 export function loadBackendConfig(): BackendConfig {
   try {
@@ -27,6 +39,7 @@ export function loadBackendConfig(): BackendConfig {
   }
   return DEFAULT_CONFIG;
 }
+
 
 export function saveBackendConfig(config: BackendConfig): void {
   try {

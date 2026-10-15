@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { BackendConfig, loadBackendConfig, saveBackendConfig } from '../services/ltaService';
-import { X, Server, Database, CheckCircle, RefreshCw, Key, Code, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BackendConfig, loadBackendConfig, saveBackendConfig, checkServerlessHealth } from '../services/ltaService';
+import { X, Server, Database, CheckCircle, RefreshCw, Key, Code, AlertCircle, Activity } from 'lucide-react';
 
 interface BackendConfigModalProps {
   isOpen: boolean;
@@ -18,10 +18,20 @@ export const BackendConfigModal: React.FC<BackendConfigModalProps> = ({
   if (!isOpen) return null;
 
   const [mode, setMode] = useState<'simulation' | 'backend'>(config.mode);
-  const [apiUrl, setApiUrl] = useState<string>(config.apiUrl);
+  const [apiUrl, setApiUrl] = useState<string>(config.apiUrl || '/api/busarrival');
   const [accountKey, setAccountKey] = useState<string>(config.ltaAccountKey || '');
   const [refreshInterval, setRefreshInterval] = useState<number>(config.autoRefreshInterval);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<{ status: string; ltaKeyConfigured: boolean } | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+
+  useEffect(() => {
+    setIsCheckingHealth(true);
+    checkServerlessHealth().then((res) => {
+      setHealthStatus(res);
+      setIsCheckingHealth(false);
+    });
+  }, []);
 
   const handleSave = () => {
     const updated: BackendConfig = {
@@ -38,6 +48,7 @@ export const BackendConfigModal: React.FC<BackendConfigModalProps> = ({
       onClose();
     }, 600);
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
@@ -66,6 +77,34 @@ export const BackendConfigModal: React.FC<BackendConfigModalProps> = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5 text-sm">
+          {/* Serverless Live Status Banner */}
+          <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <div>
+                <span className="font-semibold text-white">Serverless API Status: </span>
+                {isCheckingHealth ? (
+                  <span className="text-slate-400">Pinging /api/health...</span>
+                ) : healthStatus?.status === 'ok' ? (
+                  <span className="text-emerald-400 font-semibold">Active & Online (/api/health)</span>
+                ) : (
+                  <span className="text-amber-400">Offline / Dev Server starting</span>
+                )}
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  LTA_ACCOUNT_KEY in Environment:{' '}
+                  {healthStatus?.ltaKeyConfigured ? (
+                    <strong className="text-emerald-400">Configured in .env</strong>
+                  ) : (
+                    <span className="text-slate-500">Not configured (Add to .env or enter below)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+              v3 Serverless
+            </span>
+          </div>
+
           {/* Mode Selector */}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
@@ -86,7 +125,7 @@ export const BackendConfigModal: React.FC<BackendConfigModalProps> = ({
                   <span className="font-semibold text-white">Live Simulator</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Accurate Singapore arrivals stream with realistic headways & load fluctuations.
+                  Realistic Singapore arrivals stream with live headways & load fluctuations.
                 </p>
               </button>
 
@@ -101,10 +140,10 @@ export const BackendConfigModal: React.FC<BackendConfigModalProps> = ({
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Server className="w-4 h-4 text-emerald-400" />
-                  <span className="font-semibold text-white">Custom Backend</span>
+                  <span className="font-semibold text-white">Live LTA Datamall API</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Route requests to your Express / Cloud Run backend or LTA DataMall proxy.
+                  Calls serverless <code className="text-emerald-400">/api/busarrival</code> with live LTA v3 data.
                 </p>
               </button>
             </div>
