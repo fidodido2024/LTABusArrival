@@ -1,0 +1,7 @@
+{
+  "name": "SG Bus Arrival & Crowd Alert",
+  "description": "Live Singapore bus arrival timings, 2-bus forecast, LTA load capacity alerts, and route tracker.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
